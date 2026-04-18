@@ -254,7 +254,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     const { row, col } = selectedCell;
     const cell = grid[row][col];
-    if (cell.isGiven || cell.value === 0) return;
+    if (cell.isGiven) return;
+
+    const hasNotes = cell.note.candidates.size > 0;
+    if (cell.value === 0 && !hasNotes) return;
 
     const prevValue = cell.value;
     const prevNote = cell.note;
@@ -268,7 +271,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     };
 
     const move: GameMove = {
-      type: 'clearValue',
+      type: cell.value !== 0 ? 'clearValue' : 'clearNote',
       position: selectedCell,
       prevValue,
       newValue: 0,

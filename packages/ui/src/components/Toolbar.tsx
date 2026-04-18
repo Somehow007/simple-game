@@ -1,5 +1,4 @@
 import { useGameStore } from '../stores/gameStore';
-import { type Difficulty } from '@shudu/core';
 import { DIFFICULTY_LABELS } from '@shudu/shared';
 
 export function Toolbar() {
@@ -8,7 +7,6 @@ export function Toolbar() {
   const mistakes = useGameStore((s) => s.mistakes);
   const isPaused = useGameStore((s) => s.isPaused);
   const isCompleted = useGameStore((s) => s.isCompleted);
-  const newGame = useGameStore((s) => s.newGame);
   const undo = useGameStore((s) => s.undo);
   const redo = useGameStore((s) => s.redo);
   const togglePause = useGameStore((s) => s.togglePause);
@@ -56,18 +54,6 @@ export function Toolbar() {
         >
           {isPaused ? '▶️ 继续' : '⏸️ 暂停'}
         </button>
-      </div>
-
-      <div className="toolbar__new-game">
-        {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map((d) => (
-          <button
-            key={d}
-            className={`toolbar__difficulty-btn ${difficulty === d ? 'toolbar__difficulty-btn--active' : ''}`}
-            onClick={() => newGame(d)}
-          >
-            {DIFFICULTY_LABELS[d]}
-          </button>
-        ))}
       </div>
     </div>
   );

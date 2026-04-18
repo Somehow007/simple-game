@@ -30,18 +30,58 @@ function formatTime(seconds: number): string {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
+function ConfirmDialog({
+  isOpen,
+  title,
+  message,
+  confirmText,
+  cancelText,
+  onConfirm,
+  onCancel,
+}: {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="dialog-overlay" onClick={onCancel}>
+      <div className="dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="dialog__header">
+          <span className="dialog__title">{title}</span>
+        </div>
+        <div className="dialog__body">
+          <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--color-text-secondary)' }}>{message}</p>
+        </div>
+        <div className="dialog__footer">
+          <button className="dialog__btn dialog__btn--cancel" onClick={onCancel}>
+            {cancelText}
+          </button>
+          <button className="dialog__btn dialog__btn--danger" onClick={onConfirm}>
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StartPage({ onStartGame }: { onStartGame: (difficulty: Difficulty) => void }) {
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium');
   const showTimer = useGameStore((s) => s.settings.showTimer);
   const updateSettings = useGameStore((s) => s.updateSettings);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const handleStart = useCallback(() => {
+  const handleDifficultyClick = useCallback((d: Difficulty) => {
     setIsTransitioning(true);
     setTimeout(() => {
-      onStartGame(selectedDifficulty);
-    }, 400);
-  }, [onStartGame, selectedDifficulty]);
+      onStartGame(d);
+    }, 350);
+  }, [onStartGame]);
 
   return (
     <div className={`start-page ${isTransitioning ? 'start-page--leaving' : ''}`}>
@@ -57,25 +97,28 @@ function StartPage({ onStartGame }: { onStartGame: (difficulty: Difficulty) => v
         </div>
 
         <div className="start-page__section">
-          <h3 className="start-page__section-title">选择难度</h3>
+          <h3 className="start-page__section-title">选择难度开始游戏</h3>
           <div className="start-page__difficulty-list">
             {(['easy', 'medium', 'hard', 'expert'] as Difficulty[]).map((d) => (
               <button
                 key={d}
-                className={`start-page__difficulty-card ${selectedDifficulty === d ? 'start-page__difficulty-card--selected' : ''}`}
-                onClick={() => setSelectedDifficulty(d)}
+                className="start-page__difficulty-card"
+                onClick={() => handleDifficultyClick(d)}
                 style={{
                   '--difficulty-color': DIFFICULTY_COLORS[d],
                 } as React.CSSProperties}
               >
-                <span className="start-page__difficulty-name">{DIFFICULTY_LABELS[d]}</span>
-                <span className="start-page__difficulty-desc">{DIFFICULTY_DESCRIPTIONS[d]}</span>
-                <span className="start-page__difficulty-given">
-                  {DIFFICULTY_GIVEN_COUNT[d][0]}-{DIFFICULTY_GIVEN_COUNT[d][1]} 个提示数
+                <span className="start-page__difficulty-icon">
+                  {d === 'easy' ? '🟢' : d === 'medium' ? '🔵' : d === 'hard' ? '🟡' : '🔴'}
                 </span>
-                {selectedDifficulty === d && (
-                  <span className="start-page__difficulty-check">✓</span>
-                )}
+                <div className="start-page__difficulty-info">
+                  <span className="start-page__difficulty-name">{DIFFICULTY_LABELS[d]}</span>
+                  <span className="start-page__difficulty-desc">{DIFFICULTY_DESCRIPTIONS[d]}</span>
+                  <span className="start-page__difficulty-given">
+                    {DIFFICULTY_GIVEN_COUNT[d][0]}-{DIFFICULTY_GIVEN_COUNT[d][1]} 个提示数
+                  </span>
+                </div>
+                <span className="start-page__difficulty-arrow">›</span>
               </button>
             ))}
           </div>
@@ -92,16 +135,12 @@ function StartPage({ onStartGame }: { onStartGame: (difficulty: Difficulty) => v
             </button>
           </div>
         </div>
-
-        <button className="start-page__start-btn" onClick={handleStart}>
-          开始游戏
-        </button>
       </div>
     </div>
   );
 }
 
-function GamePage() {
+function GamePage({ onBackToStart }: { onBackToStart: () => void }) {
   const grid = useGameStore((s) => s.grid);
   const isCompleted = useGameStore((s) => s.isCompleted);
   const elapsedTime = useGameStore((s) => s.elapsedTime);
@@ -112,6 +151,7 @@ function GamePage() {
   const isPaused = useGameStore((s) => s.isPaused);
 
   const [showWinDialog, setShowWinDialog] = useState(false);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
 
   useEffect(() => {
     if (isCompleted) {
@@ -124,11 +164,19 @@ function GamePage() {
     newGame(difficulty);
   }, [newGame, difficulty]);
 
+  const handleBackConfirm = useCallback(() => {
+    setShowBackConfirm(false);
+    onBackToStart();
+  }, [onBackToStart]);
+
   if (!grid) return null;
 
   return (
     <div className="game-page">
       <div className="game-header">
+        <button className="game-back-btn" onClick={() => setShowBackConfirm(true)} title="返回主界面">
+          ← 主界面
+        </button>
         <Timer />
       </div>
       <div className={`game-board ${isPaused ? 'game-board--paused' : ''}`}>
@@ -150,6 +198,15 @@ function GamePage() {
         hintsUsed={hintsUsed}
         onNewGame={handleNewGame}
         onClose={() => setShowWinDialog(false)}
+      />
+      <ConfirmDialog
+        isOpen={showBackConfirm}
+        title="返回主界面"
+        message="当前游戏进度将不会保存，确定要返回主界面吗？"
+        confirmText="确定返回"
+        cancelText="继续游戏"
+        onConfirm={handleBackConfirm}
+        onCancel={() => setShowBackConfirm(false)}
       />
     </div>
   );
@@ -293,8 +350,10 @@ function StatsPage({ onBack }: { onBack: () => void }) {
 
 export function App() {
   const [currentPage, setCurrentPage] = useState<Page>('start');
+  const [pageTransition, setPageTransition] = useState<'entering' | 'idle'>('idle');
   const settings = useGameStore((s) => s.settings);
   const newGame = useGameStore((s) => s.newGame);
+  const resetGame = useGameStore((s) => s.resetGame);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', settings.theme);
@@ -302,8 +361,21 @@ export function App() {
 
   const handleStartGame = useCallback((difficulty: Difficulty) => {
     newGame(difficulty);
-    setCurrentPage('game');
+    setPageTransition('entering');
+    setTimeout(() => {
+      setCurrentPage('game');
+      setPageTransition('idle');
+    }, 50);
   }, [newGame]);
+
+  const handleBackToStart = useCallback(() => {
+    resetGame();
+    setPageTransition('entering');
+    setTimeout(() => {
+      setCurrentPage('start');
+      setPageTransition('idle');
+    }, 50);
+  }, [resetGame]);
 
   return (
     <div className="app">
@@ -329,9 +401,9 @@ export function App() {
           </button>
         </nav>
       )}
-      <main className="app-main">
+      <main className={`app-main ${pageTransition === 'entering' ? 'app-main--entering' : ''}`}>
         {currentPage === 'start' && <StartPage onStartGame={handleStartGame} />}
-        {currentPage === 'game' && <GamePage />}
+        {currentPage === 'game' && <GamePage onBackToStart={handleBackToStart} />}
         {currentPage === 'settings' && <SettingsPage onBack={() => setCurrentPage('game')} />}
         {currentPage === 'stats' && <StatsPage onBack={() => setCurrentPage('game')} />}
       </main>
