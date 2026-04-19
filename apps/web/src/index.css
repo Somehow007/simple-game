@@ -24,6 +24,21 @@
   --color-danger: #ef4444;
   --grid-border-color: #374151;
   --grid-cell-border-color: #d1d5db;
+  --mine-hidden-bg: #9eacb8;
+  --mine-hidden-bg-end: #8b9baa;
+  --mine-hidden-highlight: #c8d4de;
+  --mine-hidden-shadow: #5e6e7e;
+  --mine-hidden-outer-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.12);
+  --mine-revealed-bg: #e4e8ed;
+  --mine-revealed-border: #c8ced6;
+  --mine-number-1: #1565c0;
+  --mine-number-2: #2e7d32;
+  --mine-number-3: #c62828;
+  --mine-number-4: #283593;
+  --mine-number-5: #bf360c;
+  --mine-number-6: #00695c;
+  --mine-number-7: #212121;
+  --mine-number-8: #616161;
 }
 
 [data-theme='dark'] {
@@ -48,6 +63,21 @@
   --color-danger: #f87171;
   --grid-border-color: #9ca3af;
   --grid-cell-border-color: #4b5563;
+  --mine-hidden-bg: #3d4d5c;
+  --mine-hidden-bg-end: #344453;
+  --mine-hidden-highlight: #5a6e80;
+  --mine-hidden-shadow: #1e2e3e;
+  --mine-hidden-outer-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --mine-revealed-bg: #1a2530;
+  --mine-revealed-border: #2a3a48;
+  --mine-number-1: #64b5f6;
+  --mine-number-2: #81c784;
+  --mine-number-3: #ef5350;
+  --mine-number-4: #9fa8da;
+  --mine-number-5: #ff8a65;
+  --mine-number-6: #4db6ac;
+  --mine-number-7: #e0e0e0;
+  --mine-number-8: #9e9e9e;
 }
 
 * {
@@ -63,6 +93,7 @@ body {
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 #root {
@@ -1649,11 +1680,12 @@ body {
 .mine-grid {
   display: grid;
   gap: 1px;
-  background-color: var(--color-border);
+  background-color: var(--mine-revealed-border);
   border: 2px solid var(--grid-border-color);
   border-radius: 4px;
   overflow: hidden;
   user-select: none;
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .mine-grid--paused {
@@ -1683,20 +1715,25 @@ body {
   height: 32px;
   cursor: pointer;
   position: relative;
-  transition: background-color 0.1s;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   user-select: none;
   font-size: 14px;
   font-weight: 700;
 }
 
 .mine-cell--hidden {
-  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
-  border: 1px solid var(--color-border);
-  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.05);
+  background: linear-gradient(145deg, var(--mine-hidden-bg) 0%, var(--mine-hidden-bg-end) 100%);
+  border: 1px solid var(--mine-hidden-shadow);
+  border-top-color: var(--mine-hidden-highlight);
+  border-left-color: var(--mine-hidden-highlight);
+  border-right-color: var(--mine-hidden-shadow);
+  border-bottom-color: var(--mine-hidden-shadow);
+  box-shadow: var(--mine-hidden-outer-shadow), inset 1px 1px 0 rgba(255,255,255,0.15);
 }
 
 .mine-cell--hidden:hover {
-  background: var(--color-cell-highlight);
+  background: linear-gradient(145deg, var(--mine-hidden-highlight) 0%, var(--mine-hidden-bg) 100%);
+  box-shadow: var(--mine-hidden-outer-shadow), inset 1px 1px 0 rgba(255,255,255,0.25);
 }
 
 .mine-cell--hidden:active {
@@ -1705,8 +1742,8 @@ body {
 }
 
 .mine-cell--revealed {
-  background-color: var(--color-bg-secondary);
-  border: 1px solid var(--color-border);
+  background-color: var(--mine-revealed-bg);
+  border: 1px solid var(--mine-revealed-border);
   cursor: default;
   animation: cellReveal 0.15s ease;
 }
@@ -1717,9 +1754,13 @@ body {
 }
 
 .mine-cell--flagged {
-  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
-  border: 1px solid var(--color-border);
-  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.05);
+  background: linear-gradient(145deg, var(--mine-hidden-bg) 0%, var(--mine-hidden-bg-end) 100%);
+  border: 1px solid var(--mine-hidden-shadow);
+  border-top-color: var(--mine-hidden-highlight);
+  border-left-color: var(--mine-hidden-highlight);
+  border-right-color: var(--mine-hidden-shadow);
+  border-bottom-color: var(--mine-hidden-shadow);
+  box-shadow: var(--mine-hidden-outer-shadow), inset 1px 1px 0 rgba(255,255,255,0.15);
   animation: flagPop 0.25s ease;
 }
 
@@ -1730,14 +1771,19 @@ body {
 }
 
 .mine-cell--questioned {
-  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
-  border: 1px solid var(--color-border);
-  box-shadow: inset 1px 1px 0 rgba(255,255,255,0.3), inset -1px -1px 0 rgba(0,0,0,0.05);
+  background: linear-gradient(145deg, var(--mine-hidden-bg) 0%, var(--mine-hidden-bg-end) 100%);
+  border: 1px solid var(--mine-hidden-shadow);
+  border-top-color: var(--mine-hidden-highlight);
+  border-left-color: var(--mine-hidden-highlight);
+  border-right-color: var(--mine-hidden-shadow);
+  border-bottom-color: var(--mine-hidden-shadow);
+  box-shadow: var(--mine-hidden-outer-shadow), inset 1px 1px 0 rgba(255,255,255,0.15);
 }
 
 .mine-cell--hit-mine {
   background-color: #fecaca !important;
   border-color: #ef4444 !important;
+  box-shadow: none !important;
   animation: mineExplode 0.4s ease;
 }
 
@@ -1761,6 +1807,7 @@ body {
 .mine-cell--wrong-flag {
   background-color: #fef3c7 !important;
   border-color: #f59e0b !important;
+  box-shadow: none !important;
 }
 
 [data-theme='dark'] .mine-cell--wrong-flag {
@@ -1770,13 +1817,24 @@ body {
 .mine-cell__icon {
   font-size: 16px;
   line-height: 1;
+  transition: transform 0.3s ease;
 }
 
 .mine-cell__number {
   font-size: 15px;
   font-weight: 800;
   line-height: 1;
+  transition: color 0.3s ease;
 }
+
+.mine-cell__number--1 { color: var(--mine-number-1); }
+.mine-cell__number--2 { color: var(--mine-number-2); }
+.mine-cell__number--3 { color: var(--mine-number-3); }
+.mine-cell__number--4 { color: var(--mine-number-4); }
+.mine-cell__number--5 { color: var(--mine-number-5); }
+.mine-cell__number--6 { color: var(--mine-number-6); }
+.mine-cell__number--7 { color: var(--mine-number-7); }
+.mine-cell__number--8 { color: var(--mine-number-8); }
 
 .mine-counter {
   display: flex;

@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import { useMinesweeperStore } from '../stores/minesweeperStore';
-import { NUMBER_COLORS } from '@shudu/minesweeper-core';
 import type { CellPosition, MineCell } from '@shudu/minesweeper-core';
 
 interface MineCellProps {
@@ -76,8 +75,7 @@ const MineCellComponent = memo(function MineCellComponent({
     if (cell.adjacentMines > 0) {
       return (
         <span
-          className="mine-cell__number"
-          style={{ color: NUMBER_COLORS[cell.adjacentMines] }}
+          className={`mine-cell__number mine-cell__number--${cell.adjacentMines}`}
         >
           {cell.adjacentMines}
         </span>
