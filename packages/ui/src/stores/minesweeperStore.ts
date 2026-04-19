@@ -4,6 +4,7 @@ import {
   type MineDifficulty,
   type MinefieldConfig,
   type CellPosition,
+  type MineCell,
   DIFFICULTY_CONFIGS,
 } from '@shudu/minesweeper-core';
 import {
@@ -49,6 +50,22 @@ export interface MineGameSettings {
   flagMode: boolean;
   showTimer: boolean;
   questionMarkEnabled: boolean;
+  soundEnabled: boolean;
+}
+
+interface SavedMineGameState {
+  grid: { state: MineCell['state']; isMine: boolean; adjacentMines: number }[][];
+  config: MinefieldConfig;
+  difficulty: MineDifficulty;
+  firstClick: boolean;
+  elapsedTime: number;
+  isGameOver: boolean;
+  isWin: boolean;
+  flagCount: number;
+  revealedCount: number;
+  flagMode: boolean;
+  clickCount: number;
+  hitMinePosition: CellPosition | null;
 }
 
 interface MinesweeperStore {
@@ -80,6 +97,9 @@ interface MinesweeperStore {
   updateSettings: (settings: Partial<MineGameSettings>) => void;
   resetGame: () => void;
   selectCell: (position: CellPosition) => void;
+  hasSavedGame: () => boolean;
+  resumeGame: () => boolean;
+  clearSavedGame: () => void;
 }
 
 const DEFAULT_SETTINGS: MineGameSettings = {
@@ -87,6 +107,7 @@ const DEFAULT_SETTINGS: MineGameSettings = {
   flagMode: false,
   showTimer: true,
   questionMarkEnabled: true,
+  soundEnabled: true,
 };
 
 const MAX_HISTORY = 50;
@@ -167,6 +188,68 @@ function saveStatistics(statistics: MineGameStatistics) {
     };
     localStorage.setItem(STORAGE_KEYS.MINESWEEPER_STATISTICS, JSON.stringify(toSave));
   } catch {}
+}
+
+function serializeMineGrid(grid: MineGrid): SavedMineGameState['grid'] {
+  return grid.map((row) =>
+    row.map((cell) => ({
+      state: cell.state,
+      isMine: cell.isMine,
+      adjacentMines: cell.adjacentMines,
+    })),
+  );
+}
+
+function deserializeMineGrid(serialized: SavedMineGameState['grid']): MineGrid {
+  return serialized.map((row) =>
+    row.map((cell) => ({
+      state: cell.state,
+      content: cell.isMine ? 'mine' as const : cell.adjacentMines,
+      isMine: cell.isMine,
+      adjacentMines: cell.adjacentMines,
+    })),
+  );
+}
+
+function saveMineGameState(state: MinesweeperStore) {
+  try {
+    if (!state.grid || !state.config) {
+      localStorage.removeItem(STORAGE_KEYS.MINESWEEPER_SAVED_GAME);
+      return;
+    }
+    if (state.isGameOver || state.firstClick) {
+      localStorage.removeItem(STORAGE_KEYS.MINESWEEPER_SAVED_GAME);
+      return;
+    }
+    const saved: SavedMineGameState = {
+      grid: serializeMineGrid(state.grid),
+      config: state.config,
+      difficulty: state.difficulty,
+      firstClick: state.firstClick,
+      elapsedTime: state.elapsedTime,
+      isGameOver: state.isGameOver,
+      isWin: state.isWin,
+      flagCount: state.flagCount,
+      revealedCount: state.revealedCount,
+      flagMode: state.flagMode,
+      clickCount: state.clickCount,
+      hitMinePosition: state.hitMinePosition,
+    };
+    localStorage.setItem(STORAGE_KEYS.MINESWEEPER_SAVED_GAME, JSON.stringify(saved));
+  } catch {}
+}
+
+function loadSavedMineGame(): SavedMineGameState | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.MINESWEEPER_SAVED_GAME);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.grid && parsed.config && !parsed.isGameOver && !parsed.firstClick) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
 }
 
 function countFlagsOnGrid(grid: MineGrid): number {
@@ -455,6 +538,7 @@ export const useMinesweeperStore = create<MinesweeperStore>((set, get) => ({
   },
 
   resetGame: () => {
+    localStorage.removeItem(STORAGE_KEYS.MINESWEEPER_SAVED_GAME);
     set({
       grid: null,
       config: null,
@@ -475,4 +559,38 @@ export const useMinesweeperStore = create<MinesweeperStore>((set, get) => ({
   selectCell: (position) => {
     set({ selectedCell: position });
   },
+
+  hasSavedGame: () => {
+    return loadSavedMineGame() !== null;
+  },
+
+  resumeGame: () => {
+    const saved = loadSavedMineGame();
+    if (!saved) return false;
+    set({
+      grid: deserializeMineGrid(saved.grid),
+      config: saved.config,
+      difficulty: saved.difficulty,
+      firstClick: saved.firstClick,
+      elapsedTime: saved.elapsedTime,
+      isPaused: false,
+      isGameOver: saved.isGameOver,
+      isWin: saved.isWin,
+      flagCount: saved.flagCount,
+      revealedCount: saved.revealedCount,
+      flagMode: saved.flagMode,
+      selectedCell: null,
+      clickCount: saved.clickCount,
+      hitMinePosition: saved.hitMinePosition,
+    });
+    return true;
+  },
+
+  clearSavedGame: () => {
+    localStorage.removeItem(STORAGE_KEYS.MINESWEEPER_SAVED_GAME);
+  },
 }));
+
+useMinesweeperStore.subscribe((state) => {
+  saveMineGameState(state);
+});

@@ -64,18 +64,18 @@ export function getSafeCellHint(grid: MineGrid): CellPosition | null {
     return safeCells[Math.floor(Math.random() * safeCells.length)];
   }
 
-  const hiddenCells: CellPosition[] = [];
+  const safeHiddenCells: CellPosition[] = [];
   const rows = grid.length;
   const cols = grid[0].length;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (grid[r][c].state === 'hidden') {
-        hiddenCells.push({ row: r, col: c });
+      if (grid[r][c].state === 'hidden' && !grid[r][c].isMine) {
+        safeHiddenCells.push({ row: r, col: c });
       }
     }
   }
-  if (hiddenCells.length > 0) {
-    return hiddenCells[Math.floor(Math.random() * hiddenCells.length)];
+  if (safeHiddenCells.length > 0) {
+    return safeHiddenCells[Math.floor(Math.random() * safeHiddenCells.length)];
   }
   return null;
 }

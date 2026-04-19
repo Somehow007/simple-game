@@ -20,5 +20,6 @@ export type { GameStatistics, GameSettings } from './stores/gameStore';
 export { useMinesweeperStore } from './stores/minesweeperStore';
 export type { MineGameStatistics, MineGameSettings, MineGameRecord } from './stores/minesweeperStore';
 export { useShortcutStore } from './stores/shortcutStore';
+export { useSoundEffects } from './hooks/useSoundEffects';
 export { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 export { useMineKeyboardShortcuts } from './hooks/useMineKeyboardShortcuts';

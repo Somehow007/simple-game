@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: '数独',
-        short_name: '数独',
-        description: '跨平台数独游戏 - 在线免费数独',
+        name: '益智游戏合集',
+        short_name: '益智游戏',
+        description: '数独与扫雷益智游戏合集 - 在线免费数独和扫雷游戏',
         theme_color: '#3b82f6',
         background_color: '#ffffff',
         display: 'standalone',

@@ -4,6 +4,7 @@ import {
   useMinesweeperStore,
   useKeyboardShortcuts,
   useMineKeyboardShortcuts,
+  useSoundEffects,
   ToastContainer,
   showToast,
   ShortcutHelpPanel,
@@ -159,6 +160,15 @@ function GameSettingsPanel({ game }: { game: 'sudoku' | 'minesweeper' }) {
           </div>
         </div>
         <div className="settings-item">
+          <span className="settings-item__label">音效</span>
+          <button
+            className={`switch ${settings.soundEnabled ? 'switch--on' : ''}`}
+            onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
+          >
+            <span className="switch__thumb" />
+          </button>
+        </div>
+        <div className="settings-item">
           <span className="settings-item__label">高亮错误</span>
           <button
             className={`switch ${settings.highlightErrors ? 'switch--on' : ''}`}
@@ -218,6 +228,15 @@ function GameSettingsPanel({ game }: { game: 'sudoku' | 'minesweeper' }) {
         </div>
       </div>
       <div className="settings-item">
+        <span className="settings-item__label">音效</span>
+        <button
+          className={`switch ${mineSettings.soundEnabled ? 'switch--on' : ''}`}
+          onClick={() => updateMineSettings({ soundEnabled: !mineSettings.soundEnabled })}
+        >
+          <span className="switch__thumb" />
+        </button>
+      </div>
+      <div className="settings-item">
         <span className="settings-item__label">显示计时器</span>
         <button
           className={`switch ${mineSettings.showTimer ? 'switch--on' : ''}`}
@@ -240,6 +259,9 @@ function GameSettingsPanel({ game }: { game: 'sudoku' | 'minesweeper' }) {
 }
 
 function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
+  const hasSudokuSaved = useGameStore((s) => s.hasSavedGame);
+  const hasMineSaved = useMinesweeperStore((s) => s.hasSavedGame);
+
   return (
     <div className="home-page">
       <div className="home-page__content">
@@ -250,31 +272,51 @@ function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
         </div>
 
         <div className="home-page__games">
-          <button
-            className="home-page__game-card"
-            onClick={() => onNavigate('sudoku-start')}
-          >
-            <span className="home-page__game-icon">🎮</span>
-            <div className="home-page__game-info">
-              <span className="home-page__game-name">数独</span>
-              <span className="home-page__game-desc">经典数字逻辑推理游戏</span>
-              <span className="home-page__game-tags">9×9 网格 · 唯一解 · 笔记模式</span>
-            </div>
-            <span className="home-page__game-arrow">›</span>
-          </button>
+          <div className="home-page__game-card-wrapper">
+            <button
+              className="home-page__game-card"
+              onClick={() => onNavigate('sudoku-start')}
+            >
+              <span className="home-page__game-icon">🎮</span>
+              <div className="home-page__game-info">
+                <span className="home-page__game-name">数独</span>
+                <span className="home-page__game-desc">经典数字逻辑推理游戏</span>
+                <span className="home-page__game-tags">9×9 网格 · 唯一解 · 笔记模式</span>
+              </div>
+              <span className="home-page__game-arrow">›</span>
+            </button>
+            {hasSudokuSaved() && (
+              <button
+                className="home-page__resume-btn"
+                onClick={() => onNavigate('sudoku-game')}
+              >
+                ▶ 继续上次游戏
+              </button>
+            )}
+          </div>
 
-          <button
-            className="home-page__game-card"
-            onClick={() => onNavigate('minesweeper-start')}
-          >
-            <span className="home-page__game-icon">💣</span>
-            <div className="home-page__game-info">
-              <span className="home-page__game-name">扫雷</span>
-              <span className="home-page__game-desc">经典策略推理游戏</span>
-              <span className="home-page__game-tags">避开地雷 · 标记旗帜 · 逻辑推理</span>
-            </div>
-            <span className="home-page__game-arrow">›</span>
-          </button>
+          <div className="home-page__game-card-wrapper">
+            <button
+              className="home-page__game-card"
+              onClick={() => onNavigate('minesweeper-start')}
+            >
+              <span className="home-page__game-icon">💣</span>
+              <div className="home-page__game-info">
+                <span className="home-page__game-name">扫雷</span>
+                <span className="home-page__game-desc">经典策略推理游戏</span>
+                <span className="home-page__game-tags">避开地雷 · 标记旗帜 · 逻辑推理</span>
+              </div>
+              <span className="home-page__game-arrow">›</span>
+            </button>
+            {hasMineSaved() && (
+              <button
+                className="home-page__resume-btn"
+                onClick={() => onNavigate('minesweeper-game')}
+              >
+                ▶ 继续上次游戏
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="home-page__footer">
@@ -290,9 +332,10 @@ function HomePage({ onNavigate }: { onNavigate: (page: Page) => void }) {
   );
 }
 
-function SudokuStartPage({ onStartGame, onBack }: { onStartGame: (difficulty: Difficulty) => void; onBack: () => void }) {
+function SudokuStartPage({ onStartGame, onResumeGame, onBack }: { onStartGame: (difficulty: Difficulty) => void; onResumeGame: () => void; onBack: () => void }) {
   const showTimer = useGameStore((s) => s.settings.showTimer);
   const updateSettings = useGameStore((s) => s.updateSettings);
+  const hasSavedGame = useGameStore((s) => s.hasSavedGame);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showStats, setShowStats] = useState(false);
 
@@ -318,6 +361,19 @@ function SudokuStartPage({ onStartGame, onBack }: { onStartGame: (difficulty: Di
           <h1 className="start-page__title">数独</h1>
           <p className="start-page__subtitle">锻炼你的逻辑思维</p>
         </div>
+
+        {hasSavedGame() && (
+          <div className="start-page__section">
+            <button className="start-page__resume-card" onClick={onResumeGame}>
+              <span className="start-page__resume-icon">▶️</span>
+              <div className="start-page__resume-info">
+                <span className="start-page__resume-title">继续上次游戏</span>
+                <span className="start-page__resume-desc">恢复未完成的数独进度</span>
+              </div>
+              <span className="start-page__difficulty-arrow">›</span>
+            </button>
+          </div>
+        )}
 
         <div className="start-page__section">
           <h3 className="start-page__section-title">选择难度开始游戏</h3>
@@ -370,7 +426,8 @@ function SudokuStartPage({ onStartGame, onBack }: { onStartGame: (difficulty: Di
   );
 }
 
-function MinesweeperStartPage({ onStartGame, onBack }: { onStartGame: (difficulty: MineDifficulty) => void; onBack: () => void }) {
+function MinesweeperStartPage({ onStartGame, onResumeGame, onBack }: { onStartGame: (difficulty: MineDifficulty) => void; onResumeGame: () => void; onBack: () => void }) {
+  const hasSavedGame = useMinesweeperStore((s) => s.hasSavedGame);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showStats, setShowStats] = useState(false);
 
@@ -392,6 +449,19 @@ function MinesweeperStartPage({ onStartGame, onBack }: { onStartGame: (difficult
           <h1 className="start-page__title">扫雷</h1>
           <p className="start-page__subtitle">避开地雷 · 标记旗帜 · 逻辑推理</p>
         </div>
+
+        {hasSavedGame() && (
+          <div className="start-page__section">
+            <button className="start-page__resume-card" onClick={onResumeGame}>
+              <span className="start-page__resume-icon">▶️</span>
+              <div className="start-page__resume-info">
+                <span className="start-page__resume-title">继续上次游戏</span>
+                <span className="start-page__resume-desc">恢复未完成的扫雷进度</span>
+              </div>
+              <span className="start-page__difficulty-arrow">›</span>
+            </button>
+          </div>
+        )}
 
         <div className="start-page__section">
           <h3 className="start-page__section-title">选择难度开始游戏</h3>
@@ -443,14 +513,25 @@ function SudokuGamePage({ onBack }: { onBack: () => void }) {
   const hintsUsed = useGameStore((s) => s.hintsUsed);
   const newGame = useGameStore((s) => s.newGame);
   const isPaused = useGameStore((s) => s.isPaused);
+  const resumeGame = useGameStore((s) => s.resumeGame);
+  const hasSavedGame = useGameStore((s) => s.hasSavedGame);
 
   const [showWinDialog, setShowWinDialog] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
+  const { play } = useSoundEffects();
+
+  useEffect(() => {
+    if (!grid && hasSavedGame()) {
+      resumeGame();
+    }
+  }, []);
+
   useEffect(() => {
     if (isCompleted) {
+      play('complete', 'sudoku');
       setShowWinDialog(true);
     }
   }, [isCompleted]);
@@ -495,7 +576,7 @@ function SudokuGamePage({ onBack }: { onBack: () => void }) {
       <ConfirmDialog
         isOpen={showBackConfirm}
         title="返回主界面"
-        message="当前游戏进度将不会保存，确定要返回主界面吗？"
+        message="当前游戏进度将自动保存，下次可以继续游戏。确定要返回主界面吗？"
         confirmText="确定返回"
         cancelText="继续游戏"
         onConfirm={onBack}
@@ -522,6 +603,8 @@ function MinesweeperGamePage({ onBack }: { onBack: () => void }) {
   const newGame = useMinesweeperStore((s) => s.newGame);
   const setElapsedTime = useMinesweeperStore((s) => s.setElapsedTime);
   const showTimer = useMinesweeperStore((s) => s.settings.showTimer);
+  const resumeGame = useMinesweeperStore((s) => s.resumeGame);
+  const hasSavedGame = useMinesweeperStore((s) => s.hasSavedGame);
 
   const [showEndDialog, setShowEndDialog] = useState(false);
   const [showBackConfirm, setShowBackConfirm] = useState(false);
@@ -531,12 +614,19 @@ function MinesweeperGamePage({ onBack }: { onBack: () => void }) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const toastRef = useRef((message: string) => showToast(message));
+  const { play } = useSoundEffects();
 
   useMineKeyboardShortcuts({
     onShowShortcuts: () => setShowShortcutHelp((prev) => !prev),
     onToast: toastRef.current,
     onBack: () => setShowBackConfirm(true),
   });
+
+  useEffect(() => {
+    if (!grid && hasSavedGame()) {
+      resumeGame();
+    }
+  }, []);
 
   useEffect(() => {
     if (intervalRef.current) {
@@ -559,6 +649,11 @@ function MinesweeperGamePage({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     if (isGameOver) {
+      if (isWin) {
+        play('win', 'minesweeper');
+      } else {
+        play('explode', 'minesweeper');
+      }
       setShowEndDialog(true);
     }
   }, [isGameOver]);
@@ -636,7 +731,7 @@ function MinesweeperGamePage({ onBack }: { onBack: () => void }) {
       <ConfirmDialog
         isOpen={showBackConfirm}
         title="返回"
-        message="当前游戏进度将不会保存，确定要返回吗？"
+        message="当前游戏进度将自动保存，下次可以继续游戏。确定要返回吗？"
         confirmText="确定返回"
         cancelText="继续游戏"
         onConfirm={onBack}
@@ -693,6 +788,15 @@ function SettingsPage({ onBack }: { onBack: () => void }) {
             </div>
           </div>
           <div className="settings-item">
+            <span className="settings-item__label">数独 · 音效</span>
+            <button
+              className={`switch ${settings.soundEnabled ? 'switch--on' : ''}`}
+              onClick={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
+            >
+              <span className="switch__thumb" />
+            </button>
+          </div>
+          <div className="settings-item">
             <span className="settings-item__label">数独 · 高亮错误</span>
             <button
               className={`switch ${settings.highlightErrors ? 'switch--on' : ''}`}
@@ -729,6 +833,15 @@ function SettingsPage({ onBack }: { onBack: () => void }) {
             </button>
           </div>
           <div className="settings-item">
+            <span className="settings-item__label">扫雷 · 音效</span>
+            <button
+              className={`switch ${mineSettings.soundEnabled ? 'switch--on' : ''}`}
+              onClick={() => updateMineSettings({ soundEnabled: !mineSettings.soundEnabled })}
+            >
+              <span className="switch__thumb" />
+            </button>
+          </div>
+          <div className="settings-item">
             <span className="settings-item__label">扫雷 · 显示计时器</span>
             <button
               className={`switch ${mineSettings.showTimer ? 'switch--on' : ''}`}
@@ -755,13 +868,29 @@ function SettingsPage({ onBack }: { onBack: () => void }) {
 }
 
 function StatsPage({ onBack }: { onBack: () => void }) {
+  const [activeTab, setActiveTab] = useState<'sudoku' | 'minesweeper'>('sudoku');
+
   return (
     <div className="stats-page">
       <div className="page-header">
         <button className="back-btn" onClick={onBack}>← 返回</button>
-        <h2>📊 数独统计</h2>
+        <h2>📊 游戏统计</h2>
       </div>
-      <SudokuStatsPanel />
+      <div className="settings-tabs">
+        <button
+          className={`settings-tab ${activeTab === 'sudoku' ? 'settings-tab--active' : ''}`}
+          onClick={() => setActiveTab('sudoku')}
+        >
+          数独
+        </button>
+        <button
+          className={`settings-tab ${activeTab === 'minesweeper' ? 'settings-tab--active' : ''}`}
+          onClick={() => setActiveTab('minesweeper')}
+        >
+          扫雷
+        </button>
+      </div>
+      {activeTab === 'sudoku' ? <SudokuStatsPanel /> : <MineStatsPanel />}
     </div>
   );
 }
@@ -772,8 +901,10 @@ export function App() {
   const settings = useGameStore((s) => s.settings);
   const newGame = useGameStore((s) => s.newGame);
   const resetGame = useGameStore((s) => s.resetGame);
+  const resumeGame = useGameStore((s) => s.resumeGame);
   const mineNewGame = useMinesweeperStore((s) => s.newGame);
   const mineResetGame = useMinesweeperStore((s) => s.resetGame);
+  const mineResumeGame = useMinesweeperStore((s) => s.resumeGame);
 
   const toastRef = useRef((message: string) => showToast(message));
 
@@ -795,10 +926,22 @@ export function App() {
     navigateTo('sudoku-game');
   }, [newGame, navigateTo]);
 
+  const handleSudokuResume = useCallback(() => {
+    if (resumeGame()) {
+      navigateTo('sudoku-game');
+    }
+  }, [resumeGame, navigateTo]);
+
   const handleMinesweeperStart = useCallback((difficulty: MineDifficulty) => {
     mineNewGame(difficulty);
     navigateTo('minesweeper-game');
   }, [mineNewGame, navigateTo]);
+
+  const handleMinesweeperResume = useCallback(() => {
+    if (mineResumeGame()) {
+      navigateTo('minesweeper-game');
+    }
+  }, [mineResumeGame, navigateTo]);
 
   const handleSudokuBack = useCallback(() => {
     resetGame();
@@ -818,9 +961,9 @@ export function App() {
     <div className="app">
       <main className="app-main">
         {currentPage === 'home' && <HomePage onNavigate={navigateTo} />}
-        {currentPage === 'sudoku-start' && <SudokuStartPage onStartGame={handleSudokuStart} onBack={handleHomeBack} />}
+        {currentPage === 'sudoku-start' && <SudokuStartPage onStartGame={handleSudokuStart} onResumeGame={handleSudokuResume} onBack={handleHomeBack} />}
         {currentPage === 'sudoku-game' && <SudokuGamePage onBack={handleSudokuBack} />}
-        {currentPage === 'minesweeper-start' && <MinesweeperStartPage onStartGame={handleMinesweeperStart} onBack={handleHomeBack} />}
+        {currentPage === 'minesweeper-start' && <MinesweeperStartPage onStartGame={handleMinesweeperStart} onResumeGame={handleMinesweeperResume} onBack={handleHomeBack} />}
         {currentPage === 'minesweeper-game' && <MinesweeperGamePage onBack={handleMinesweeperBack} />}
         {currentPage === 'settings' && <SettingsPage onBack={handleHomeBack} />}
         {currentPage === 'stats' && <StatsPage onBack={handleHomeBack} />}

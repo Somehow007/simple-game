@@ -1565,6 +1565,12 @@ body {
   gap: 12px;
 }
 
+.home-page__game-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .home-page__game-card {
   display: flex;
   align-items: center;
@@ -2454,4 +2460,75 @@ body {
   .stats-panel__advanced {
     grid-template-columns: repeat(4, 1fr);
   }
+}
+
+.home-page__resume-btn {
+  padding: 10px 16px;
+  border: 2px solid var(--color-success);
+  border-radius: 10px;
+  background-color: transparent;
+  color: var(--color-success);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.home-page__resume-btn:hover {
+  background-color: var(--color-success);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.start-page__resume-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 2px solid var(--color-success);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.1) 100%);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.start-page__resume-card:hover {
+  border-color: var(--color-success);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(34, 197, 94, 0.2);
+}
+
+.start-page__resume-card:active {
+  transform: translateY(0);
+}
+
+.start-page__resume-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+  width: 32px;
+  text-align: center;
+}
+
+.start-page__resume-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.start-page__resume-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-success);
+}
+
+.start-page__resume-desc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
 }

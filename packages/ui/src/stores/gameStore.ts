@@ -37,11 +37,36 @@ export interface GameSettings {
   highlightSameNumbers: boolean;
   autoRemoveNotes: boolean;
   showTimer: boolean;
+  soundEnabled: boolean;
 }
 
 interface HistoryState {
   moves: GameMove[];
   currentIndex: number;
+}
+
+interface SavedGameState {
+  grid: { value: GridValue; isGiven: boolean; noteCandidates: number[] }[][];
+  solution: GridValue[][];
+  difficulty: Difficulty;
+  selectedCell: CellPosition | null;
+  history: {
+    moves: {
+      type: string;
+      position: CellPosition;
+      prevValue: GridValue;
+      newValue: GridValue;
+      prevNoteCandidates: number[];
+      newNoteCandidates: number[];
+    }[];
+    currentIndex: number;
+  };
+  elapsedTime: number;
+  isPaused: boolean;
+  isCompleted: boolean;
+  mistakes: number;
+  hintsUsed: number;
+  isNoteMode: boolean;
 }
 
 interface GameStore {
@@ -76,6 +101,9 @@ interface GameStore {
   canRedo: () => boolean;
   isCellValueCorrect: (position: CellPosition) => boolean;
   getNumberCount: (value: CellValue) => number;
+  hasSavedGame: () => boolean;
+  resumeGame: () => boolean;
+  clearSavedGame: () => void;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -84,6 +112,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   highlightSameNumbers: true,
   autoRemoveNotes: true,
   showTimer: true,
+  soundEnabled: true,
 };
 
 const DEFAULT_STATISTICS: GameStatistics = {
@@ -129,6 +158,94 @@ function saveStatistics(statistics: GameStatistics) {
   try {
     localStorage.setItem(STORAGE_KEYS.STATISTICS, JSON.stringify(statistics));
   } catch {}
+}
+
+function serializeGrid(grid: SudokuGrid): SavedGameState['grid'] {
+  return grid.map((row) =>
+    row.map((cell) => ({
+      value: cell.value,
+      isGiven: cell.isGiven,
+      noteCandidates: [...cell.note.candidates],
+    })),
+  );
+}
+
+function deserializeGrid(serialized: SavedGameState['grid']): SudokuGrid {
+  return serialized.map((row) =>
+    row.map((cell) => ({
+      value: cell.value,
+      isGiven: cell.isGiven,
+      note: { candidates: new Set(cell.noteCandidates as CellValue[]) },
+    })),
+  );
+}
+
+function serializeHistory(history: HistoryState): SavedGameState['history'] {
+  return {
+    moves: history.moves.map((move) => ({
+      type: move.type,
+      position: move.position,
+      prevValue: move.prevValue,
+      newValue: move.newValue,
+      prevNoteCandidates: [...move.prevNote.candidates],
+      newNoteCandidates: [...move.newNote.candidates],
+    })),
+    currentIndex: history.currentIndex,
+  };
+}
+
+function deserializeHistory(serialized: SavedGameState['history']): HistoryState {
+  return {
+    moves: serialized.moves.map((move) => ({
+      type: move.type as GameMove['type'],
+      position: move.position,
+      prevValue: move.prevValue,
+      newValue: move.newValue,
+      prevNote: { candidates: new Set(move.prevNoteCandidates as CellValue[]) },
+      newNote: { candidates: new Set(move.newNoteCandidates as CellValue[]) },
+    })),
+    currentIndex: serialized.currentIndex,
+  };
+}
+
+function saveGameState(state: GameStore) {
+  try {
+    if (!state.grid || !state.solution) {
+      localStorage.removeItem(STORAGE_KEYS.SAVED_GAME);
+      return;
+    }
+    if (state.isCompleted) {
+      localStorage.removeItem(STORAGE_KEYS.SAVED_GAME);
+      return;
+    }
+    const saved: SavedGameState = {
+      grid: serializeGrid(state.grid),
+      solution: state.solution,
+      difficulty: state.difficulty,
+      selectedCell: state.selectedCell,
+      history: serializeHistory(state.history),
+      elapsedTime: state.elapsedTime,
+      isPaused: false,
+      isCompleted: state.isCompleted,
+      mistakes: state.mistakes,
+      hintsUsed: state.hintsUsed,
+      isNoteMode: state.isNoteMode,
+    };
+    localStorage.setItem(STORAGE_KEYS.SAVED_GAME, JSON.stringify(saved));
+  } catch {}
+}
+
+function loadSavedGame(): SavedGameState | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.SAVED_GAME);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed.grid && parsed.solution && !parsed.isCompleted) {
+        return parsed;
+      }
+    }
+  } catch {}
+  return null;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -438,6 +555,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetGame: () => {
+    localStorage.removeItem(STORAGE_KEYS.SAVED_GAME);
     set({
       grid: null,
       solution: null,
@@ -479,4 +597,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     return count;
   },
+
+  hasSavedGame: () => {
+    return loadSavedGame() !== null;
+  },
+
+  resumeGame: () => {
+    const saved = loadSavedGame();
+    if (!saved) return false;
+    set({
+      grid: deserializeGrid(saved.grid),
+      solution: saved.solution,
+      difficulty: saved.difficulty,
+      selectedCell: saved.selectedCell,
+      history: deserializeHistory(saved.history),
+      elapsedTime: saved.elapsedTime,
+      isPaused: false,
+      isCompleted: saved.isCompleted,
+      mistakes: saved.mistakes,
+      hintsUsed: saved.hintsUsed,
+      isNoteMode: saved.isNoteMode,
+    });
+    return true;
+  },
+
+  clearSavedGame: () => {
+    localStorage.removeItem(STORAGE_KEYS.SAVED_GAME);
+  },
 }));
+
+useGameStore.subscribe((state) => {
+  saveGameState(state);
+});
