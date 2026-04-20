@@ -1,12 +1,59 @@
-import { useGameStore } from '../stores/gameStore';
 import { type CellValue } from '@shudu/core';
+import { useGameStore } from '../stores/gameStore';
+import { useSudokuVariantStore } from '../stores/sudokuVariantStore';
+import type { CellPosition } from '@shudu/core';
 
-export function Grid() {
+interface SudokuStoreAdapter {
+  grid: import('@shudu/core').SudokuGrid | null;
+  selectedCell: CellPosition | null;
+  selectCell: (position: CellPosition) => void;
+  isCellValueCorrect: (position: CellPosition) => boolean;
+  highlightErrors: boolean;
+  highlightSameNumbers: boolean;
+}
+
+function useStandardSudokuStore(): SudokuStoreAdapter {
   const grid = useGameStore((s) => s.grid);
   const selectedCell = useGameStore((s) => s.selectedCell);
-  const settings = useGameStore((s) => s.settings);
   const selectCell = useGameStore((s) => s.selectCell);
   const isCellValueCorrect = useGameStore((s) => s.isCellValueCorrect);
+  const settings = useGameStore((s) => s.settings);
+  return {
+    grid,
+    selectedCell,
+    selectCell,
+    isCellValueCorrect,
+    highlightErrors: settings.highlightErrors,
+    highlightSameNumbers: settings.highlightSameNumbers,
+  };
+}
+
+function useVariantSudokuStore(): SudokuStoreAdapter {
+  const grid = useSudokuVariantStore((s) => s.grid);
+  const selectedCell = useSudokuVariantStore((s) => s.selectedCell);
+  const selectCell = useSudokuVariantStore((s) => s.selectCell);
+  const solution = useSudokuVariantStore((s) => s.solution);
+
+  const isCellValueCorrect = (position: CellPosition) => {
+    if (!grid) return true;
+    const cell = grid[position.row][position.col];
+    if (cell.value === 0 || !solution) return true;
+    return cell.value === solution[position.row][position.col];
+  };
+
+  return {
+    grid,
+    selectedCell,
+    selectCell,
+    isCellValueCorrect,
+    highlightErrors: true,
+    highlightSameNumbers: true,
+  };
+}
+
+export function Grid({ variant = false }: { variant?: boolean }) {
+  const store = variant ? useVariantSudokuStore() : useStandardSudokuStore();
+  const { grid, selectedCell, selectCell, isCellValueCorrect, highlightErrors, highlightSameNumbers } = store;
 
   if (!grid) return null;
 
@@ -21,8 +68,8 @@ export function Grid() {
       selectedCell &&
       Math.floor(row / 3) === Math.floor(selectedCell.row / 3) &&
       Math.floor(col / 3) === Math.floor(selectedCell.col / 3);
-    const isSameNumber = settings.highlightSameNumbers && selectedValue !== 0 && cell.value === selectedValue;
-    const isConflict = settings.highlightErrors && cell.value !== 0 && !isCellValueCorrect({ row, col });
+    const isSameNumber = highlightSameNumbers && selectedValue !== 0 && cell.value === selectedValue;
+    const isConflict = highlightErrors && cell.value !== 0 && !isCellValueCorrect({ row, col });
     const isBorderRight = (col + 1) % 3 === 0 && col < 8;
     const isBorderBottom = (row + 1) % 3 === 0 && row < 8;
 

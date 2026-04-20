@@ -104,6 +104,7 @@ interface GameStore {
   hasSavedGame: () => boolean;
   resumeGame: () => boolean;
   clearSavedGame: () => void;
+  recordVariantWin: (difficulty: Difficulty, elapsedTime: number) => void;
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -623,6 +624,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   clearSavedGame: () => {
     localStorage.removeItem(STORAGE_KEYS.SAVED_GAME);
+  },
+
+  recordVariantWin: (difficulty, elapsedTime) => {
+    const stats = { ...get().statistics };
+    stats.gamesPlayed++;
+    stats.gamesWon++;
+    stats.currentStreak++;
+    if (stats.currentStreak > stats.bestStreak) {
+      stats.bestStreak = stats.currentStreak;
+    }
+    stats.difficultyDistribution[difficulty]++;
+    stats.difficultyWins[difficulty]++;
+    const currentBest = stats.bestTimes[difficulty];
+    if (currentBest === null || elapsedTime < currentBest) {
+      stats.bestTimes[difficulty] = elapsedTime;
+    }
+    set({ statistics: stats });
+    saveStatistics(stats);
   },
 }));
 

@@ -1,8 +1,28 @@
 import { useMinesweeperStore } from '../stores/minesweeperStore';
+import { useMineVariantStore } from '../stores/mineVariantStore';
 
-export function MineCounter() {
-  const config = useMinesweeperStore((s) => s.config);
-  const flagCount = useMinesweeperStore((s) => s.flagCount);
+interface MineCounterAdapter {
+  config: { mineCount: number } | null;
+  flagCount: number;
+}
+
+function useStandardMineCounterStore(): MineCounterAdapter {
+  return {
+    config: useMinesweeperStore((s) => s.config),
+    flagCount: useMinesweeperStore((s) => s.flagCount),
+  };
+}
+
+function useVariantMineCounterStore(): MineCounterAdapter {
+  return {
+    config: useMineVariantStore((s) => s.config),
+    flagCount: useMineVariantStore((s) => s.flagCount),
+  };
+}
+
+export function MineCounter({ variant = false }: { variant?: boolean }) {
+  const store = variant ? useVariantMineCounterStore() : useStandardMineCounterStore();
+  const { config, flagCount } = store;
 
   if (!config) return null;
 

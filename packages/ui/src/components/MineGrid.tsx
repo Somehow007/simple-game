@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { useMinesweeperStore } from '../stores/minesweeperStore';
-import type { CellPosition, MineCell } from '@shudu/minesweeper-core';
+import { useMineVariantStore } from '../stores/mineVariantStore';
+import type { CellPosition, MineCell, MineGrid as MineGridType, MinefieldConfig } from '@shudu/minesweeper-core';
 
 interface MineCellProps {
   cell: MineCell;
@@ -97,18 +98,56 @@ const MineCellComponent = memo(function MineCellComponent({
   );
 });
 
-export function MineGrid() {
-  const grid = useMinesweeperStore((s) => s.grid);
-  const config = useMinesweeperStore((s) => s.config);
-  const isGameOver = useMinesweeperStore((s) => s.isGameOver);
-  const isPaused = useMinesweeperStore((s) => s.isPaused);
-  const hitMinePosition = useMinesweeperStore((s) => s.hitMinePosition);
-  const selectedCell = useMinesweeperStore((s) => s.selectedCell);
-  const handleCellClick = useMinesweeperStore((s) => s.handleCellClick);
-  const handleCellRightClick = useMinesweeperStore((s) => s.handleCellRightClick);
-  const handleCellDoubleClick = useMinesweeperStore((s) => s.handleCellDoubleClick);
+interface MineGridAdapter {
+  grid: MineGridType | null;
+  config: MinefieldConfig | null;
+  isGameOver: boolean;
+  isPaused: boolean;
+  hitMinePosition: CellPosition | null;
+  selectedCell: CellPosition | null;
+  handleCellClick: (position: CellPosition) => void;
+  handleCellRightClick: (position: CellPosition) => void;
+  handleCellDoubleClick: (position: CellPosition) => void;
+  getDisplayGrid: () => MineGridType | null;
+}
+
+function useStandardMineGridStore(): MineGridAdapter {
+  return {
+    grid: useMinesweeperStore((s) => s.grid),
+    config: useMinesweeperStore((s) => s.config),
+    isGameOver: useMinesweeperStore((s) => s.isGameOver),
+    isPaused: useMinesweeperStore((s) => s.isPaused),
+    hitMinePosition: useMinesweeperStore((s) => s.hitMinePosition),
+    selectedCell: useMinesweeperStore((s) => s.selectedCell),
+    handleCellClick: useMinesweeperStore((s) => s.handleCellClick),
+    handleCellRightClick: useMinesweeperStore((s) => s.handleCellRightClick),
+    handleCellDoubleClick: useMinesweeperStore((s) => s.handleCellDoubleClick),
+    getDisplayGrid: () => useMinesweeperStore.getState().grid,
+  };
+}
+
+function useVariantMineGridStore(): MineGridAdapter {
+  return {
+    grid: useMineVariantStore((s) => s.grid),
+    config: useMineVariantStore((s) => s.config),
+    isGameOver: useMineVariantStore((s) => s.isGameOver),
+    isPaused: useMineVariantStore((s) => s.isPaused),
+    hitMinePosition: useMineVariantStore((s) => s.hitMinePosition),
+    selectedCell: useMineVariantStore((s) => s.selectedCell),
+    handleCellClick: useMineVariantStore((s) => s.handleCellClick),
+    handleCellRightClick: useMineVariantStore((s) => s.handleCellRightClick),
+    handleCellDoubleClick: useMineVariantStore((s) => s.handleCellDoubleClick),
+    getDisplayGrid: useMineVariantStore((s) => s.getDisplayGrid),
+  };
+}
+
+export function MineGrid({ variant = false }: { variant?: boolean }) {
+  const store = variant ? useVariantMineGridStore() : useStandardMineGridStore();
+  const { grid, config, isGameOver, isPaused, hitMinePosition, selectedCell, handleCellClick, handleCellRightClick, handleCellDoubleClick, getDisplayGrid } = store;
 
   if (!grid || !config) return null;
+
+  const displayGrid = getDisplayGrid() || grid;
 
   const isHitMine = (row: number, col: number) =>
     hitMinePosition !== null && hitMinePosition.row === row && hitMinePosition.col === col;
@@ -133,7 +172,7 @@ export function MineGrid() {
           gridTemplateRows: `repeat(${config.rows}, 1fr)`,
         }}
       >
-        {grid.map((row, rowIndex) =>
+        {displayGrid.map((row, rowIndex) =>
           row.map((cell, colIndex) => (
             <MineCellComponent
               key={`${rowIndex}-${colIndex}`}

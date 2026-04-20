@@ -100,6 +100,7 @@ interface MinesweeperStore {
   hasSavedGame: () => boolean;
   resumeGame: () => boolean;
   clearSavedGame: () => void;
+  recordVariantResult: (isWin: boolean, difficulty: MineDifficulty, elapsedTime: number, clickCount: number, flagCount: number, grid: MineGrid) => void;
 }
 
 const DEFAULT_SETTINGS: MineGameSettings = {
@@ -588,6 +589,55 @@ export const useMinesweeperStore = create<MinesweeperStore>((set, get) => ({
 
   clearSavedGame: () => {
     localStorage.removeItem(STORAGE_KEYS.MINESWEEPER_SAVED_GAME);
+  },
+
+  recordVariantResult: (isWin, difficulty, elapsedTime, clickCount, flagCount, grid) => {
+    const stats = { ...get().statistics };
+    const totalFlags = flagCount;
+    const correctFlags = countCorrectFlagsOnGrid(grid);
+
+    if (isWin) {
+      stats.gamesPlayed++;
+      stats.gamesWon++;
+      stats.currentStreak++;
+      if (stats.currentStreak > stats.bestStreak) {
+        stats.bestStreak = stats.currentStreak;
+      }
+      stats.difficultyDistribution[difficulty]++;
+      stats.difficultyWins[difficulty]++;
+      const currentBest = stats.bestTimes[difficulty];
+      if (currentBest === null || elapsedTime < currentBest) {
+        stats.bestTimes[difficulty] = elapsedTime;
+      }
+      const prevAvg = stats.averageTimes[difficulty];
+      const wins = stats.difficultyWins[difficulty];
+      stats.averageTimes[difficulty] = prevAvg === 0 ? elapsedTime : Math.round((prevAvg * (wins - 1) + elapsedTime) / wins);
+    } else {
+      stats.gamesPlayed++;
+      stats.gamesLost++;
+      stats.currentStreak = 0;
+      stats.difficultyDistribution[difficulty]++;
+    }
+
+    stats.totalClicks += clickCount;
+    stats.totalFlagsPlaced += totalFlags;
+    stats.totalFlagAccuracy = stats.totalFlagsPlaced > 0
+      ? (stats.totalFlagAccuracy * (stats.totalFlagsPlaced - totalFlags) + correctFlags) / stats.totalFlagsPlaced
+      : 0;
+
+    const record: MineGameRecord = {
+      difficulty,
+      won: isWin,
+      time: elapsedTime,
+      clicks: clickCount,
+      flagsPlaced: totalFlags,
+      correctFlags,
+      date: new Date().toISOString(),
+    };
+    stats.gameHistory = [...stats.gameHistory, record].slice(-MAX_HISTORY);
+
+    set({ statistics: stats });
+    saveStatistics(stats);
   },
 }));
 

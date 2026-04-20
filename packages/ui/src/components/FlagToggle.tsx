@@ -1,8 +1,28 @@
 import { useMinesweeperStore } from '../stores/minesweeperStore';
+import { useMineVariantStore } from '../stores/mineVariantStore';
 
-export function FlagToggle() {
-  const flagMode = useMinesweeperStore((s) => s.flagMode);
-  const toggleFlagMode = useMinesweeperStore((s) => s.toggleFlagMode);
+interface FlagToggleAdapter {
+  flagMode: boolean;
+  toggleFlagMode: () => void;
+}
+
+function useStandardFlagStore(): FlagToggleAdapter {
+  return {
+    flagMode: useMinesweeperStore((s) => s.flagMode),
+    toggleFlagMode: useMinesweeperStore((s) => s.toggleFlagMode),
+  };
+}
+
+function useVariantFlagStore(): FlagToggleAdapter {
+  return {
+    flagMode: useMineVariantStore((s) => s.flagMode),
+    toggleFlagMode: useMineVariantStore((s) => s.toggleFlagMode),
+  };
+}
+
+export function FlagToggle({ variant = false }: { variant?: boolean }) {
+  const store = variant ? useVariantFlagStore() : useStandardFlagStore();
+  const { flagMode, toggleFlagMode } = store;
 
   return (
     <button

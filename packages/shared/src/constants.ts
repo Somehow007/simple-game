@@ -6,6 +6,8 @@ export const STORAGE_KEYS = {
   MINESWEEPER_SETTINGS: 'shudu_minesweeper_settings',
   MINESWEEPER_STATISTICS: 'shudu_minesweeper_statistics',
   MINESWEEPER_SAVED_GAME: 'shudu_minesweeper_saved_game',
+  ACHIEVEMENTS: 'shudu_achievements',
+  DAILY_CHALLENGE: 'shudu_daily_challenge',
 } as const;
 
 export const DIFFICULTY_LABELS: Record<string, string> = {
