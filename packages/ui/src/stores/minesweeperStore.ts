@@ -31,9 +31,9 @@ export interface MineGameStatistics {
   difficultyDistribution: Record<MineDifficulty, number>;
   difficultyWins: Record<MineDifficulty, number>;
   totalFlagsPlaced: number;
+  totalCorrectFlags: number;
   totalCellsRevealed: number;
   totalClicks: number;
-  totalFlagAccuracy: number;
   gameHistory: MineGameRecord[];
 }
 
@@ -148,9 +148,9 @@ const DEFAULT_STATISTICS: MineGameStatistics = {
     expert: 0,
   },
   totalFlagsPlaced: 0,
+  totalCorrectFlags: 0,
   totalCellsRevealed: 0,
   totalClicks: 0,
-  totalFlagAccuracy: 0,
   gameHistory: [],
 };
 
@@ -167,9 +167,17 @@ function loadStatistics(): MineGameStatistics {
     const stored = localStorage.getItem(STORAGE_KEYS.MINESWEEPER_STATISTICS);
     if (stored) {
       const parsed = JSON.parse(stored);
+      let totalCorrectFlags = parsed.totalCorrectFlags ?? 0;
+      if (totalCorrectFlags === 0 && parsed.totalFlagAccuracy != null && parsed.totalFlagsPlaced > 0) {
+        const history: MineGameRecord[] = Array.isArray(parsed.gameHistory) ? parsed.gameHistory : [];
+        if (history.length > 0) {
+          totalCorrectFlags = history.reduce((sum: number, r: MineGameRecord) => sum + (r.correctFlags || 0), 0);
+        }
+      }
       return {
         ...DEFAULT_STATISTICS,
         ...parsed,
+        totalCorrectFlags,
         averageTimes: { ...DEFAULT_STATISTICS.averageTimes, ...(parsed.averageTimes || {}) },
         difficultyWins: { ...DEFAULT_STATISTICS.difficultyWins, ...(parsed.difficultyWins || {}) },
         gameHistory: Array.isArray(parsed.gameHistory) ? parsed.gameHistory.slice(-MAX_HISTORY) : [],
@@ -282,9 +290,9 @@ function recordLoss(
   get: () => MinesweeperStore,
   grid: MineGrid,
   hitMinePosition: CellPosition | null,
+  totalFlags: number,
+  correctFlags: number,
 ) {
-  const correctFlags = countCorrectFlagsOnGrid(grid);
-  const totalFlags = countFlagsOnGrid(grid);
   const stats = { ...get().statistics };
   stats.gamesPlayed++;
   stats.gamesLost++;
@@ -292,9 +300,7 @@ function recordLoss(
   stats.difficultyDistribution[get().difficulty]++;
   stats.totalClicks += get().clickCount;
   stats.totalFlagsPlaced += totalFlags;
-  stats.totalFlagAccuracy = stats.totalFlagsPlaced > 0
-    ? (stats.totalFlagAccuracy * (stats.totalFlagsPlaced - totalFlags) + correctFlags) / stats.totalFlagsPlaced
-    : 0;
+  stats.totalCorrectFlags += correctFlags;
   const record: MineGameRecord = {
     difficulty: get().difficulty,
     won: false,
@@ -336,9 +342,7 @@ function recordWin(
   const totalFlags = get().flagCount;
   const correctFlags = countCorrectFlagsOnGrid(grid);
   stats.totalFlagsPlaced += totalFlags;
-  stats.totalFlagAccuracy = stats.totalFlagsPlaced > 0
-    ? (stats.totalFlagAccuracy * (stats.totalFlagsPlaced - totalFlags) + correctFlags) / stats.totalFlagsPlaced
-    : 0;
+  stats.totalCorrectFlags += correctFlags;
   const currentBest = stats.bestTimes[get().difficulty];
   if (currentBest === null || get().elapsedTime < currentBest) {
     stats.bestTimes[get().difficulty] = get().elapsedTime;
@@ -440,9 +444,11 @@ export const useMinesweeperStore = create<MinesweeperStore>((set, get) => ({
 
     if (targetCell.isMine) {
       targetCell.state = 'revealed';
+      const totalFlagsBeforeReveal = countFlagsOnGrid(workingGrid);
+      const correctFlagsBeforeReveal = countCorrectFlagsOnGrid(workingGrid);
       const revealedGrid = revealAllMines(workingGrid);
       set({ grid: revealedGrid });
-      recordLoss(set, get, revealedGrid, position);
+      recordLoss(set, get, revealedGrid, position, totalFlagsBeforeReveal, correctFlagsBeforeReveal);
       return;
     }
 
@@ -505,9 +511,11 @@ export const useMinesweeperStore = create<MinesweeperStore>((set, get) => ({
     const { revealed, hitMine } = chordReveal(newGrid, row, col);
 
     if (hitMine) {
+      const totalFlagsBeforeReveal = countFlagsOnGrid(newGrid);
+      const correctFlagsBeforeReveal = countCorrectFlagsOnGrid(newGrid);
       const revealedGrid = revealAllMines(newGrid);
       set({ grid: revealedGrid });
-      recordLoss(set, get, revealedGrid, null);
+      recordLoss(set, get, revealedGrid, null, totalFlagsBeforeReveal, correctFlagsBeforeReveal);
     } else {
       const newRevealedCount = get().revealedCount + revealed.length;
       set({ grid: newGrid, revealedCount: newRevealedCount });
@@ -641,9 +649,7 @@ export const useMinesweeperStore = create<MinesweeperStore>((set, get) => ({
 
     stats.totalClicks += clickCount;
     stats.totalFlagsPlaced += totalFlags;
-    stats.totalFlagAccuracy = stats.totalFlagsPlaced > 0
-      ? (stats.totalFlagAccuracy * (stats.totalFlagsPlaced - totalFlags) + correctFlags) / stats.totalFlagsPlaced
-      : 0;
+    stats.totalCorrectFlags += correctFlags;
 
     const record: MineGameRecord = {
       difficulty,

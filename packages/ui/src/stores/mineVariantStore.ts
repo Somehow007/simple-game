@@ -161,10 +161,11 @@ export const useMineVariantStore = create<MineVariantStore>((set, get) => ({
 
     if (targetCell.isMine) {
       targetCell.state = 'revealed';
+      const totalFlagsBeforeReveal = countFlagsOnGrid(workingGrid);
       const revealedGrid = revealAllMines(workingGrid);
       const finalFlagCount = countFlagsOnGrid(revealedGrid);
       useMinesweeperStore.getState().recordVariantResult(
-        false, get().difficulty, get().elapsedTime, get().clickCount, finalFlagCount, revealedGrid,
+        false, get().difficulty, get().elapsedTime, get().clickCount, totalFlagsBeforeReveal, revealedGrid,
       );
       set({
         grid: revealedGrid,
@@ -235,10 +236,11 @@ export const useMineVariantStore = create<MineVariantStore>((set, get) => ({
     const { hitMine } = chordReveal(newGrid, row, col);
 
     if (hitMine) {
+      const totalFlagsBeforeReveal = countFlagsOnGrid(newGrid);
       const revealedGrid = revealAllMines(newGrid);
       const finalFlagCount = countFlagsOnGrid(revealedGrid);
       useMinesweeperStore.getState().recordVariantResult(
-        false, get().difficulty, get().elapsedTime, get().clickCount, finalFlagCount, revealedGrid,
+        false, get().difficulty, get().elapsedTime, get().clickCount, totalFlagsBeforeReveal, revealedGrid,
       );
       set({
         grid: revealedGrid,

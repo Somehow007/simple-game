@@ -10,7 +10,7 @@ export function MineStatsPanel() {
     : 0;
 
   const flagAccuracy = statistics.totalFlagsPlaced > 0
-    ? Math.round((statistics.totalFlagAccuracy / statistics.totalFlagsPlaced) * 100 * 100) / 100
+    ? Math.round((statistics.totalCorrectFlags / statistics.totalFlagsPlaced) * 100 * 100) / 100
     : 0;
 
   const avgClicks = statistics.gamesPlayed > 0
